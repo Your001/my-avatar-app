@@ -1,0 +1,106 @@
+// index.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ready Player Me Integration</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        .avatar-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        #avatarImage {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="avatar-container">
+        <div class="controls">
+            <button onclick="openAvatarCreator()">Create Avatar</button>
+            <button onclick="loadLastAvatar()">Load Last Avatar</button>
+        </div>
+        <div id="avatarDisplay">
+            <img id="avatarImage" src="" alt="Your Avatar" style="display: none;">
+            <model-viewer id="avatarViewer" style="display: none;"></model-viewer>
+        </div>
+    </div>
+
+    <script>
+        const subdomain = 'your-subdomain'; // Ganti dengan subdomain Anda
+        let avatarUrl = '';
+
+        function openAvatarCreator() {
+            const frame = document.createElement('iframe');
+            frame.style.position = 'fixed';
+            frame.style.top = '0';
+            frame.style.left = '0';
+            frame.style.width = '100%';
+            frame.style.height = '100%';
+            frame.style.border = 'none';
+            frame.src = `https://${subdomain}.readyplayer.me/avatar?frameApi`;
+
+            document.body.appendChild(frame);
+
+            window.addEventListener('message', subscribe);
+            document.body.appendChild(frame);
+        }
+
+        function subscribe(event) {
+            const json = parse(event);
+
+            if (json?.source !== 'readyplayerme') {
+                return;
+            }
+
+            // Get avatar URL
+            if (json.eventName === 'v1.avatar.exported') {
+                avatarUrl = json.data.url;
+                localStorage.setItem('avatarUrl', avatarUrl);
+                displayAvatar(avatarUrl);
+                const frame = document.querySelector('iframe');
+                if (frame) {
+                    frame.remove();
+                }
+            }
+
+            // Remove iframe after user closes avatar creator
+            if (json.eventName === 'v1.exit') {
+                const frame = document.querySelector('iframe');
+                if (frame) {
+                    frame.remove();
+                }
+            }
+        }
+
+        function parse(event) {
+            try {
+                return JSON.parse(event.data);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function displayAvatar(url) {
+            const avatarImage = document.getElementById('avatarImage');
+            avatarImage.src = url;
+            avatarImage.style.display = 'block';
+        }
+
+        function loadLastAvatar() {
+            const savedUrl = localStorage.getItem('avatarUrl');
+            if (savedUrl) {
+                displayAvatar(savedUrl);
+            } else {
+                alert('No saved avatar found!');
+            }
+        }
+    </script>
+</body>
+</html>
